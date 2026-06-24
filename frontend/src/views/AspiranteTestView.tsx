@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import type { User, Pregunta } from '../interfaces';
 import QuestionCard from '../components/QuestionCard';
 
+
 interface AspiranteTestViewProps {
   user: User;
   onLogout: () => void;
@@ -27,11 +28,16 @@ export default function AspiranteTestView({ user, onLogout }: AspiranteTestViewP
       .then((d: Pregunta[]) => setPreguntasP2(d.map((item) => ({ ...item, seccion: 'Parte 2' }))));
 
     // El contador de tiempo solo se activará cuando el estudiante salga de las instrucciones
-    let timer: NodeJS.Timeout;
+   let timer: ReturnType<typeof setInterval> | undefined;
+    
     if (pasoActual !== 'instrucciones') {
       timer = setInterval(() => setTimeLeft(t => (t > 0 ? t - 1 : 0)), 1000);
     }
-    return () => clearInterval(timer);
+    
+    // Si el timer se inicializó, lo limpiamos correctamente al desmontar o cambiar de fase
+    return () => {
+      if (timer) clearInterval(timer);
+    };
   }, [pasoActual]); // Escucha el cambio de fase para activar el reloj
 
   const handleP1Change = (pregId: number, opcion: 'a' | 'b', valor: number) => {

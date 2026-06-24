@@ -4,7 +4,6 @@ import type { User } from '../interfaces';
 import gifUamLogo from '../assets/gifUamLogo.gif';
 // Paleta de Colores de Autoría Institucional
 const TEAL = "#0099a7";
-const ORCHID = "#4f46e5"; 
 const NAVY = "#1e293b";
 const SLATE = "#64748b";
 
@@ -105,9 +104,9 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
           style={{ boxShadow: "0 25px 60px rgba(0,153,167,0.08), 0 4px 20px rgba(0,0,0,0.04)" }}
         >
           <div className="mb-6">
-            <h3 className="text-xl font-extrabold leading-snug" style={{ color: ORCHID }}>Portal de Usuarios</h3>
+            <h3 className="text-xl font-extrabold leading-snug" style={{ color: TEAL }}>Portal de Usuarios</h3>
             <div className="flex items-center gap-2 mt-1.5">
-              <div className="w-6 h-0.5 rounded-full" style={{ backgroundColor: ORCHID }} />
+              <div className="w-6 h-0.5 rounded-full" style={{ backgroundColor: TEAL }} />
               <span className="text-[10px] font-bold tracking-wider uppercase" style={{ color: SLATE }}>
                 Estudio de Valores de Allport
               </span>
