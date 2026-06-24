@@ -25,3 +25,12 @@ NOTA ( tambien aparece en el readme del  frontend ):
 
 Se necesita  acceder como aspirante, llenar el formulario (puede llenarlo todo o solo 2 preguntas ) y terminarlo y enviarlo, luego acceder como evaluador para que pueda revisar lasr respuestas guardadas, de lo contrario aparecera una por defecto.
 
+
+Versiones en las que se hizo este trabajo:
+
+nodejs : 24.16.0
+
+npm : 11.13.0
+
+Tailwindcss 
+shadcn

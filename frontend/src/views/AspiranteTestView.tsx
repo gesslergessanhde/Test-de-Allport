@@ -69,7 +69,7 @@ export default function AspiranteTestView({ user, onLogout }: AspiranteTestViewP
         {/* El temporizador permanece oculto durante la lectura inicial */}
         {pasoActual !== 'instrucciones' && (
           <div className="text-xs font-bold bg-amber-100 text-amber-800 px-3 py-1 rounded-full">
-            ⏱️ {Math.floor(timeLeft / 60)}m {timeLeft % 60}s
+            🕒 {Math.floor(timeLeft / 60)}m {timeLeft % 60}s
           </div>
         )}
       </header>
