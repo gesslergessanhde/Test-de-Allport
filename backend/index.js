@@ -149,4 +149,69 @@ app.post('/api/enviar-correo/:id', async (req, res) => {
     }
 });
 
+// ================= CRUD ENDPOINTS PARA ADMINISTRADOR =================
+
+// --- Endpoints de Usuarios ---
+app.post('/api/admin/usuarios', (req, res) => {
+    const { nombre_aspirante, cif, password_hash, rol } = req.body;
+    const nuevoId = db_usuarios.length > 0 ? Math.max(...db_usuarios.map(u => u.id_aspirante)) + 1 : 1;
+    const nuevoUsuario = { id_aspirante: nuevoId, nombre_aspirante, cif, password_hash, rol };
+    db_usuarios.push(nuevoUsuario);
+    res.json({ success: true, user: nuevoUsuario });
+});
+
+app.delete('/api/admin/usuarios/:id', (req, res) => {
+    const id = parseInt(req.params.id);
+    const index = db_usuarios.findIndex(u => u.id_aspirante === id);
+    if (index !== -1) {
+        db_usuarios.splice(index, 1);
+        return res.json({ success: true, message: "Usuario eliminado con éxito." });
+    }
+    res.status(404).json({ success: false, message: "Usuario no encontrado." });
+});
+
+// --- Endpoints de Preguntas ---
+app.post('/api/admin/preguntas/:parte', (req, res) => {
+    const { parte } = req.params; // "p1" o "p2"
+    const { texto_item, opciones } = req.body;
+    
+    if (parte === 'p1') {
+        const nuevoId = db_preguntas_p1.length > 0 ? Math.max(...db_preguntas_p1.map(p => p.id_item)) + 1 : 1;
+        db_preguntas_p1.push({ id_item: nuevoId, texto_item, seccion: "Parte 1" });
+    } else {
+        const nuevoId = db_preguntas_p2.length > 0 ? Math.max(...db_preguntas_p2.map(p => p.id_item)) + 1 : 1;
+        db_preguntas_p2.push({ id_item: nuevoId, texto_item, opciones: opciones || [] });
+    }
+    res.json({ success: true, message: "Pregunta añadida con éxito." });
+});
+
+app.put('/api/admin/preguntas/:parte/:id', (req, res) => {
+    const { parte, id } = req.params;
+    const { texto_item } = req.body;
+    const idItem = parseInt(id);
+
+    if (parte === 'p1') {
+        const item = db_preguntas_p1.find(p => p.id_item === idItem);
+        if (item) item.texto_item = texto_item;
+    } else {
+        const item = db_preguntas_p2.find(p => p.id_item === idItem);
+        if (item) item.texto_item = texto_item;
+    }
+    res.json({ success: true, message: "Pregunta actualizada." });
+});
+
+app.delete('/api/admin/preguntas/:parte/:id', (req, res) => {
+    const { parte, id } = req.params;
+    const idItem = parseInt(id);
+
+    if (parte === 'p1') {
+        const index = db_preguntas_p1.findIndex(p => p.id_item === idItem);
+        if (index !== -1) db_preguntas_p1.splice(index, 1);
+    } else {
+        const index = db_preguntas_p2.findIndex(p => p.id_item === idItem);
+        if (index !== -1) db_preguntas_p2.splice(index, 1);
+    }
+    res.json({ success: true, message: "Pregunta eliminada." });
+});
+
 app.listen(3001, () => console.log('Server Axiológico Modular Allport activo en puerto 3001'));
