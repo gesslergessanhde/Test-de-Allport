@@ -215,7 +215,6 @@ export default function EvaluadorView({ user, onLogout }: EvaluadorViewProps) {
             </div>
           ) : (
             <div className="h-full flex flex-col items-center justify-center text-center text-slate-400 py-12">
-              <span className="text-2xl">📋</span>
               <p className="text-xs font-medium mt-2">Click en boton "revisar" para ver las respuestas de un estudiante</p>
             </div>
           )}
