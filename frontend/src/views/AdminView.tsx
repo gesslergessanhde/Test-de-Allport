@@ -1,27 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { User, ShieldAlert, Trash2, Edit3, PlusCircle, CheckSquare, AlertTriangle, X } from 'lucide-react';
+import { ShieldAlert, Trash2, Edit3, CheckSquare, AlertTriangle, X } from 'lucide-react';
 import type { User as UserType, Pregunta } from '../interfaces';
+import UserManagementCard from '../components/UserManagementCard';
 
-// Definición explícita de las propiedades de la vista (Soluciona error 2304)
 interface AdminViewProps {
   user: UserType;
   onLogout: () => void;
 }
 
-// ================= COMPONENTE MODAL INTERNO AUXILIAR (BLINDADO CONTRA ESLINT) =================
+// ================= COMPONENTE MODAL INTERNO AUXILIAR =================
 interface LocalModalProps {
   isOpen: boolean;
   type: 'edit' | 'delete';
   title: string;
   initialText?: string;
+  initialOptions?: string[];
   onClose: () => void;
-  onConfirm: (text?: string) => void;
+  onConfirm: (text?: string, options?: string[]) => void;
 }
 
-function AdminModalLocal({ isOpen, type, title, initialText = '', onClose, onConfirm }: LocalModalProps) {
-  // 🔄 SOLUCIÓN AL CASCADING RENDER: Eliminamos totalmente el useEffect.
-  // El componente ahora maneja el estado de manera natural inicializándose con la prop.
+function AdminModalLocal({ isOpen, type, title, initialText = '', initialOptions = [], onClose, onConfirm }: LocalModalProps) {
   const [inputText, setInputText] = useState(initialText);
+  const [opcA, setOpcA] = useState(initialOptions[0] || '');
+  const [opcB, setOpcB] = useState(initialOptions[1] || '');
+  const [opcC, setOpcC] = useState(initialOptions[2] || '');
+  const [opcD, setOpcD] = useState(initialOptions[3] || '');
 
   if (!isOpen) return null;
 
@@ -40,14 +43,25 @@ function AdminModalLocal({ isOpen, type, title, initialText = '', onClose, onCon
         </div>
         <div className="space-y-4">
           {type === 'edit' ? (
-            <div>
-              <label className="block text-[10px] font-bold mb-1.5 uppercase tracking-wider text-slate-500">Enunciado del Ítem</label>
-              <textarea
-                rows={3}
-                className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-teal-500 font-medium resize-none"
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-              />
+            <div className="space-y-3">
+              <div>
+                <label className="block text-[10px] font-bold mb-1.5 uppercase tracking-wider text-slate-500">Enunciado del Ítem</label>
+                <textarea
+                  rows={3}
+                  className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-teal-500 font-medium resize-none"
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                />
+              </div>
+              {initialOptions.length > 0 && (
+                <div className="space-y-2">
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">Opciones de Respuesta (Parte 2)</label>
+                  <input type="text" className="w-full p-2 text-xs border bg-slate-50 rounded-xl outline-none font-medium text-slate-800" value={opcA} onChange={e => setOpcA(e.target.value)} placeholder="Opción a" />
+                  <input type="text" className="w-full p-2 text-xs border bg-slate-50 rounded-xl outline-none font-medium text-slate-800" value={opcB} onChange={e => setOpcB(e.target.value)} placeholder="Opción b" />
+                  <input type="text" className="w-full p-2 text-xs border bg-slate-50 rounded-xl outline-none font-medium text-slate-800" value={opcC} onChange={e => setOpcC(e.target.value)} placeholder="Opción c" />
+                  <input type="text" className="w-full p-2 text-xs border bg-slate-50 rounded-xl outline-none font-medium text-slate-800" value={opcD} onChange={e => setOpcD(e.target.value)} placeholder="Opción d" />
+                </div>
+              )}
             </div>
           ) : (
             <p className="text-xs text-slate-600 leading-relaxed font-medium">
@@ -60,7 +74,7 @@ function AdminModalLocal({ isOpen, type, title, initialText = '', onClose, onCon
             </button>
             <button
               type="button"
-              onClick={() => onConfirm(type === 'edit' ? inputText : undefined)}
+              onClick={() => onConfirm(type === 'edit' ? inputText : undefined, initialOptions.length > 0 ? [opcA, opcB, opcC, opcD] : undefined)}
               className={`px-4 py-2 text-white text-xs font-bold rounded-xl shadow ${type === 'edit' ? 'bg-teal-600 hover:bg-teal-700' : 'bg-rose-600 hover:bg-rose-700'}`}
             >
               {type === 'edit' ? 'Guardar Cambios' : 'Confirmar'}
@@ -75,11 +89,6 @@ function AdminModalLocal({ isOpen, type, title, initialText = '', onClose, onCon
 // ================= COMPONENTE VISTA PRINCIPAL DE ADMINISTRADOR =================
 export default function AdminView({ user, onLogout }: AdminViewProps) {
   const [usuarios, setUsuarios] = useState<UserType[]>([]);
-  const [nuevoNombre, setNuevoNombre] = useState('');
-  const [nuevoCif, setNuevoCif] = useState('');
-  const [nuevaClave, setNuevaClave] = useState('');
-  const [nuevoRol, setNuevoRol] = useState('usuario');
-
   const [testSeleccionado, setTestSeleccionado] = useState<'p1' | 'p2'>('p1');
   const [preguntasP1, setPreguntasP1] = useState<Pregunta[]>([]);
   const [preguntasP2, setPreguntasP2] = useState<Pregunta[]>([]);
@@ -94,40 +103,7 @@ export default function AdminView({ user, onLogout }: AdminViewProps) {
   const [modalEditOpen, setModalEditOpen] = useState(false);
   const [modalDeleteOpen, setModalDeleteOpen] = useState(false);
 
-  useEffect(() => {
-    const inicializarDatos = async () => {
-      try {
-        const resP1 = await fetch('http://localhost:3001/api/preguntas/p1');
-        const dataP1 = await resP1.json();
-        setPreguntasP1(dataP1);
-
-        const resP2 = await fetch('http://localhost:3001/api/preguntas/p2');
-        const dataP2 = await resP2.json();
-        setPreguntasP2(dataP2);
-
-        const resRes = await fetch('http://localhost:3001/api/resultados');
-        const dataRes = await resRes.json();
-        
-        setUsuarios([
-          { id_aspirante: 1, nombre_aspirante: 'Admin General', cif: 'admin', password_hash: 'admin', rol: 'admin' },
-          { id_aspirante: 2, nombre_aspirante: 'Psicólogo Evaluador', cif: 'evaluador', password_hash: '123', rol: 'evaluador' },
-          ...dataRes.map((r: { id_resultado: number; nombre: string; cif: string }) => ({
-            id_aspirante: r.id_resultado,
-            nombre_aspirante: r.nombre,
-            cif: r.cif,
-            password_hash: '*****',
-            rol: 'usuario'
-          }))
-        ]);
-      } catch (err) {
-        console.error("Error cargando el panel de administración:", err);
-      }
-    };
-
-    inicializarDatos();
-  }, []);
-
-  const refrescarTabla = async () => {
+ const refrescarTabla = async () => {
     try {
       const resP1 = await fetch('http://localhost:3001/api/preguntas/p1');
       const dataP1 = await resP1.json();
@@ -137,42 +113,55 @@ export default function AdminView({ user, onLogout }: AdminViewProps) {
       const dataP2 = await resP2.json();
       setPreguntasP2(dataP2);
 
-      const resRes = await fetch('http://localhost:3001/api/resultados');
-      const dataRes = await resRes.json();
+      //Cambiamos la petición para traer la lista maestra real de usuarios
+      const resUser = await fetch('http://localhost:3001/api/admin/usuarios');
+      const dataUser = await resUser.json();
       
-      setUsuarios([
-        { id_aspirante: 1, nombre_aspirante: 'Admin General', cif: 'admin', password_hash: 'admin', rol: 'admin' },
-        { id_aspirante: 2, nombre_aspirante: 'Psicólogo Evaluador', cif: 'evaluador', password_hash: '123', rol: 'evaluador' },
-        ...dataRes.map((r: { id_resultado: number; nombre: string; cif: string }) => ({
-          id_aspirante: r.id_resultado,
-          nombre_aspirante: r.nombre,
-          cif: r.cif,
-          password_hash: '*****',
-          rol: 'usuario'
+      
+      setUsuarios(
+        dataUser.map((u: { id_aspirante: number; nombre_aspirante: string; cif: string; rol: string }) => ({
+          id_aspirante: u.id_aspirante,
+          nombre_aspirante: u.nombre_aspirante,
+          cif: u.cif,
+          password_hash: '*****', 
+          rol: u.rol as "admin" | "usuario" | "evaluador" // 🔄 Type assertion para blindar el linter
         }))
-      ]);
+      );
     } catch (err) {
       console.error(err);
     }
   };
 
-  const handleAgregarUsuario = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!nuevoNombre || !nuevoCif || !nuevaClave) return;
+  // 🔄 SOLUCIÓN AL CASCADING RENDER: Encapsulamos la ejecución de forma interna y asíncrona
+  useEffect(() => {
+    const cargarDatosIniciales = async () => {
+      await refrescarTabla();
+    };
+    cargarDatosIniciales();
+  }, []);
 
+  const handleAgregarUsuario = async (nombre: string, cif: string, clave: string, rol: string) => {
     try {
-      await fetch('http://localhost:3001/api/admin/usuarios', {
+      const res = await fetch('http://localhost:3001/api/admin/usuarios', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nombre_aspirante: nuevoNombre,
-          cif: nuevoCif,
-          password_hash: nuevaClave,
-          rol: nuevoRol
-        })
+        body: JSON.stringify({ nombre_aspirante: nombre, cif, password_hash: clave, rol })
       });
-      setNuevoNombre(''); setNuevoCif(''); setNuevaClave('');
-      refrescarTabla();
+      const data = await res.json();
+      
+      if (data.success) {
+        // 🔄 SOLUCIÓN AL ERROR DE TYPE DE TS: Moldeamos explícitamente el rol dinámico al tipo literal esperado
+        setUsuarios(prev => [
+          ...prev, 
+          { 
+            id_aspirante: data.user.id_aspirante, 
+            nombre_aspirante: nombre, 
+            cif, 
+            password_hash: '*****', 
+            rol: rol as "admin" | "usuario" | "evaluador"
+          }
+        ]);
+      }
     } catch (err) {
       console.error(err);
     }
@@ -182,7 +171,7 @@ export default function AdminView({ user, onLogout }: AdminViewProps) {
     if (id === 1) { alert("No puedes eliminar al administrador raíz."); return; }
     try {
       await fetch(`http://localhost:3001/api/admin/usuarios/${id}`, { method: 'DELETE' });
-      refrescarTabla();
+      setUsuarios(prev => prev.filter(u => u.id_aspirante !== id));
     } catch (err) {
       console.error(err);
     }
@@ -191,7 +180,6 @@ export default function AdminView({ user, onLogout }: AdminViewProps) {
   const handleAgregarPregunta = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!nuevaPreguntaTexto) return;
-
     const opciones = testSeleccionado === 'p2' ? [opcionA, opcionB, opcionC, opcionD] : [];
 
     try {
@@ -201,7 +189,7 @@ export default function AdminView({ user, onLogout }: AdminViewProps) {
         body: JSON.stringify({ texto_item: nuevaPreguntaTexto, opciones })
       });
       setNuevaPreguntaTexto(''); setOpcionA(''); setOpcionB(''); setOpcionC(''); setOpcionD('');
-      refrescarTabla();
+      await refrescarTabla();
     } catch (err) {
       console.error(err);
     }
@@ -212,17 +200,17 @@ export default function AdminView({ user, onLogout }: AdminViewProps) {
     setModalEditOpen(true);
   };
 
-  const ejecutarEdicion = async (nuevoTexto?: string) => {
+  const ejecutarEdicion = async (nuevoTexto?: string, nuevasOpciones?: string[]) => {
     if (!preguntaActiva || !nuevoTexto) return;
     try {
       await fetch(`http://localhost:3001/api/admin/preguntas/${testSeleccionado}/${preguntaActiva.id_item}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ texto_item: nuevoTexto })
+        body: JSON.stringify({ texto_item: nuevoTexto, opciones: nuevasOpciones })
       });
       setModalEditOpen(false);
       setPreguntaActiva(null);
-      refrescarTabla();
+      await refrescarTabla();
     } catch (err) {
       console.error(err);
     }
@@ -241,7 +229,7 @@ export default function AdminView({ user, onLogout }: AdminViewProps) {
       });
       setModalDeleteOpen(false);
       setPreguntaActiva(null);
-      refrescarTabla();
+      await refrescarTabla();
     } catch (err) {
       console.error(err);
     }
@@ -263,42 +251,11 @@ export default function AdminView({ user, onLogout }: AdminViewProps) {
       </header>
 
       <main className="max-w-7xl mx-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* COLUMNA 1: CONTROL DE USUARIOS */}
-        <section className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm h-fit">
-          <h2 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
-            <User className="w-4 h-4 text-indigo-600" /> Control de Accesos
-          </h2>
-
-          <form onSubmit={handleAgregarUsuario} className="space-y-3 mb-6 bg-slate-50 p-4 rounded-2xl border border-slate-200/40">
-            <h3 className="text-[11px] font-bold uppercase text-slate-500">Registrar Nuevo Rol</h3>
-            <input type="text" placeholder="Nombre completo" className="w-full p-2 bg-white text-xs border rounded-xl outline-none" value={nuevoNombre} onChange={e => setNuevoNombre(e.target.value)} required />
-            <input type="text" placeholder="Código CIF / Identificador" className="w-full p-2 bg-white text-xs border rounded-xl outline-none" value={nuevoCif} onChange={e => setNuevoCif(e.target.value)} required />
-            <input type="password" placeholder="Clave secreta" className="w-full p-2 bg-white text-xs border rounded-xl outline-none" value={nuevaClave} onChange={e => setNuevaClave(e.target.value)} required />
-            <select className="w-full p-2 bg-white text-xs border rounded-xl outline-none font-medium" value={nuevoRol} onChange={e => setNuevoRol(e.target.value)}>
-              <option value="usuario">Aspirante / Estudiante</option>
-              <option value="evaluador">Psicólogo Evaluador</option>
-              <option value="admin">Administrador</option>
-            </select>
-            <button type="submit" className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1">
-              <PlusCircle className="w-3.5 h-3.5" /> Dar de Alta
-            </button>
-          </form>
-
-          <div className="space-y-2 max-h-75 overflow-y-auto pr-1">
-            <h3 className="text-[11px] font-bold uppercase text-slate-500 mb-1">Usuarios Registrados</h3>
-            {usuarios.map(u => (
-              <div key={u.id_aspirante} className="flex justify-between items-center p-2.5 bg-slate-50 rounded-xl border border-slate-200/50 text-xs">
-                <div>
-                  <p className="font-bold text-slate-800">{u.nombre_aspirante}</p>
-                  <p className="text-[10px] text-slate-500 font-mono">CIF: {u.cif} | <span className="capitalize font-semibold text-teal-600">{u.rol}</span></p>
-                </div>
-                <button type="button" onClick={() => handleEliminarUsuario(u.id_aspirante)} className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Dar de baja usuario">
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
+        <UserManagementCard 
+          usuarios={usuarios} 
+          onAgregar={handleAgregarUsuario} 
+          onEliminar={handleEliminarUsuario} 
+        />
 
         {/* COLUMNAS 2 Y 3: TEST MODO ESPEJO */}
         <section className="lg:col-span-2 bg-white p-6 rounded-3xl border border-slate-200/80 shadow-sm">
@@ -383,15 +340,13 @@ export default function AdminView({ user, onLogout }: AdminViewProps) {
         </section>
       </main>
 
-      {/* 🔄 SOLUCIÓN RECOMENDADA POR REACT: Inyectamos la prop 'key' basada en el id_item.
-          Esto desmonta y vuelve a montar el componente cada vez que cambia de pregunta,
-          inicializando el estado 'inputText' nativamente sin romper las reglas de ESLint. */}
       <AdminModalLocal 
         key={preguntaActiva ? `edit-${preguntaActiva.id_item}` : 'edit-none'}
         isOpen={modalEditOpen} 
         type="edit" 
         title="Modificar Pregunta" 
         initialText={preguntaActiva?.texto_item} 
+        initialOptions={preguntaActiva?.opciones || []} 
         onClose={() => { setModalEditOpen(false); setPreguntaActiva(null); }} 
         onConfirm={ejecutarEdicion} 
       />
