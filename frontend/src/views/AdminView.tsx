@@ -105,16 +105,16 @@ export default function AdminView({ user, onLogout }: AdminViewProps) {
 
  const refrescarTabla = async () => {
     try {
-      const resP1 = await fetch('http://localhost:3001/api/preguntas/p1');
+      const resP1 = await fetch('http://localhost:8080/api/preguntas/p1');
       const dataP1 = await resP1.json();
       setPreguntasP1(dataP1);
 
-      const resP2 = await fetch('http://localhost:3001/api/preguntas/p2');
+      const resP2 = await fetch('http://localhost:8080/api/preguntas/p2');
       const dataP2 = await resP2.json();
       setPreguntasP2(dataP2);
 
       //Cambiamos la petición para traer la lista maestra real de usuarios
-      const resUser = await fetch('http://localhost:3001/api/admin/usuarios');
+      const resUser = await fetch('http://localhost:8080/api/admin/usuarios');
       const dataUser = await resUser.json();
       
       
@@ -142,7 +142,7 @@ export default function AdminView({ user, onLogout }: AdminViewProps) {
 
   const handleAgregarUsuario = async (nombre: string, cif: string, clave: string, rol: string) => {
     try {
-      const res = await fetch('http://localhost:3001/api/admin/usuarios', {
+      const res = await fetch('http://localhost:8080/api/admin/usuarios', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ nombre_aspirante: nombre, cif, password_hash: clave, rol })
@@ -170,7 +170,7 @@ export default function AdminView({ user, onLogout }: AdminViewProps) {
   const handleEliminarUsuario = async (id: number) => {
     if (id === 1) { alert("No puedes eliminar al administrador raíz."); return; }
     try {
-      await fetch(`http://localhost:3001/api/admin/usuarios/${id}`, { method: 'DELETE' });
+      await fetch(`http://localhost:8080/api/admin/usuarios/${id}`, { method: 'DELETE' });
       setUsuarios(prev => prev.filter(u => u.id_aspirante !== id));
     } catch (err) {
       console.error(err);
@@ -183,7 +183,7 @@ export default function AdminView({ user, onLogout }: AdminViewProps) {
     const opciones = testSeleccionado === 'p2' ? [opcionA, opcionB, opcionC, opcionD] : [];
 
     try {
-      await fetch(`http://localhost:3001/api/admin/preguntas/${testSeleccionado}`, {
+      await fetch(`http://localhost:8080/api/admin/preguntas/${testSeleccionado}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ texto_item: nuevaPreguntaTexto, opciones })
@@ -203,7 +203,7 @@ export default function AdminView({ user, onLogout }: AdminViewProps) {
   const ejecutarEdicion = async (nuevoTexto?: string, nuevasOpciones?: string[]) => {
     if (!preguntaActiva || !nuevoTexto) return;
     try {
-      await fetch(`http://localhost:3001/api/admin/preguntas/${testSeleccionado}/${preguntaActiva.id_item}`, {
+      await fetch(`http://localhost:8080/api/admin/preguntas/${testSeleccionado}/${preguntaActiva.id_item}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ texto_item: nuevoTexto, opciones: nuevasOpciones })
@@ -224,7 +224,7 @@ export default function AdminView({ user, onLogout }: AdminViewProps) {
   const ejecutarEliminacion = async () => {
     if (!preguntaActiva) return;
     try {
-      await fetch(`http://localhost:3001/api/admin/preguntas/${testSeleccionado}/${preguntaActiva.id_item}`, { 
+      await fetch(`http://localhost:8080/api/admin/preguntas/${testSeleccionado}/${preguntaActiva.id_item}`, { 
         method: 'DELETE' 
       });
       setModalDeleteOpen(false);

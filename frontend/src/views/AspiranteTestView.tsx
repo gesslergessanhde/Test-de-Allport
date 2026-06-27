@@ -19,11 +19,11 @@ export default function AspiranteTestView({ user, onLogout }: AspiranteTestViewP
   const [respuestasP2, setRespuestasP2] = useState<Record<number, Record<number, number>>>({});
 
   useEffect(() => {
-    fetch('http://localhost:3001/api/preguntas/p1')
+    fetch('http://localhost:8080/api/preguntas/p1')
       .then(r => r.json())
       .then((d: Pregunta[]) => setPreguntasP1(d.map((item) => ({ ...item, seccion: 'Parte 1' }))));
     
-    fetch('http://localhost:3001/api/preguntas/p2')
+    fetch('http://localhost:8080/api/preguntas/p2')
       .then(r => r.json())
       .then((d: Pregunta[]) => setPreguntasP2(d.map((item) => ({ ...item, seccion: 'Parte 2' }))));
 
@@ -56,7 +56,7 @@ export default function AspiranteTestView({ user, onLogout }: AspiranteTestViewP
   };
 
   const finalizarTest = async () => {
-    await fetch('http://localhost:3001/api/respuestas', {
+    await fetch('http://localhost:8080/api/respuestas', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id_aspirante: user.id_aspirante, respuestasP1, respuestasP2 })

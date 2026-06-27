@@ -37,23 +37,23 @@ export default function EvaluadorView({ user, onLogout }: EvaluadorViewProps) {
   const [verFormularioAuditoria, setVerFormularioAuditoria] = useState(false);
 
   const cargarDatos = () => {
-    fetch('http://localhost:3001/api/resultados')
+    fetch('http://localhost:8080/api/resultados')
       .then(res => res.json())
       .then((data: ResultadoAspirante[]) => setResultados(data));
   };
 
   useEffect(() => {
     cargarDatos();
-    fetch('http://localhost:3001/api/preguntas/p1')
+    fetch('http://localhost:8080/api/preguntas/p1')
       .then(r => r.json())
       .then((d: Pregunta[]) => setPreguntasP1(d.map(i => ({...i, seccion: 'Parte 1'}))));
-    fetch('http://localhost:3001/api/preguntas/p2')
+    fetch('http://localhost:8080/api/preguntas/p2')
       .then(r => r.json())
       .then((d: Pregunta[]) => setPreguntasP2(d.map(i => ({...i, seccion: 'Parte 2'}))));
   }, []);
 
   const guardarEntrevista = async (id: number) => {
-    await fetch(`http://localhost:3001/api/entrevista/${id}`, {
+    await fetch(`http://localhost:8080/api/entrevista/${id}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ notas })
@@ -70,13 +70,13 @@ export default function EvaluadorView({ user, onLogout }: EvaluadorViewProps) {
     }
 
     try {
-      await fetch(`http://localhost:3001/api/entrevista/${id}`, {
+      await fetch(`http://localhost:8080/api/entrevista/${id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notas })
       });
 
-      const res = await fetch(`http://localhost:3001/api/enviar-correo/${id}`, { 
+      const res = await fetch(`http://localhost:8080/api/enviar-correo/${id}`, { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ emailPersonalizado: correoDestino })
