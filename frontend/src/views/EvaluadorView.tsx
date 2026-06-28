@@ -16,6 +16,7 @@ interface ResultadoAspirante {
   estado_evaluacion: string;
   notas_entrevista: string;
   respuestas_guardadas: { 
+    id_aspirante: number;
     respuestasP1: Record<number, {a: number, b: number}>; 
     respuestasP2: Record<number, Record<number, number>> 
   } | null;
@@ -52,31 +53,51 @@ export default function EvaluadorView({ user, onLogout }: EvaluadorViewProps) {
       .then((d: Pregunta[]) => setPreguntasP2(d.map(i => ({...i, seccion: 'Parte 2'}))));
   }, []);
 
-  const guardarEntrevista = async (id: number) => {
-    await fetch(`http://localhost:8080/api/entrevista/${id}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ notas })
-    });
-    alert('Notas de entrevista fijadas en el expediente.');
-    cargarDatos();
-    setSelected(null);
+  // 🎯 Cambia el estado persistente a "Revisado" (id_estado = 2)
+  const guardarEntrevista = async (idAspirante: number) => {
+    try {
+      await fetch(`http://localhost:8080/api/entrevista/${idAspirante}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notas })
+      });
+      alert('Notas de entrevista fijadas en el expediente.');
+      
+      // Actualización visual reactiva local
+      setResultados(prev => prev.map(item => 
+        item.respuestas_guardadas?.id_aspirante === idAspirante 
+          ? { ...item, estado_evaluacion: 'Revisado', notas_entrevista: notas }
+          : item
+      ));
+
+      if (selected) {
+        setSelected({
+          ...selected,
+          estado_evaluacion: 'Revisado',
+          notas_entrevista: notas
+        });
+      }
+    } catch (error) {
+      console.error("Error al guardar entrevista:", error);
+      alert("No se pudieron guardar las notas.");
+    }
   };
 
-  const enviarCorreo = async (id: number) => {
+  // 🎯 Cambia el estado persistente a "Resultados Enviados" (id_estado = 3)
+  const enviarCorreo = async (idAspirante: number, idResultado: number) => {
     if (!correoDestino.trim()) {
       alert("Por favor, especifique un correo electrónico de destino válido.");
       return;
     }
 
     try {
-      await fetch(`http://localhost:8080/api/entrevista/${id}`, {
+      await fetch(`http://localhost:8080/api/entrevista/${idAspirante}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notas })
       });
 
-      const res = await fetch(`http://localhost:8080/api/enviar-correo/${id}`, { 
+      const res = await fetch(`http://localhost:8080/api/enviar-correo/${idResultado}`, { 
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ emailPersonalizado: correoDestino })
@@ -85,8 +106,14 @@ export default function EvaluadorView({ user, onLogout }: EvaluadorViewProps) {
       const data = await res.json();
       if (data.success) {
         alert(`¡Éxito! Expediente guardado y transmitido a: ${correoDestino}`);
-        cargarDatos();
-        setSelected(null);
+        
+        setResultados(prev => prev.map(item => 
+          item.id_resultado === idResultado 
+            ? { ...item, estado_evaluacion: 'Resultados Enviados' }
+            : item
+        ));
+
+        setSelected(null); 
       }
     } catch (error) {
       console.error("Error en la cadena transaccional:", error);
@@ -98,7 +125,7 @@ export default function EvaluadorView({ user, onLogout }: EvaluadorViewProps) {
     <div className="min-h-screen bg-slate-100 font-sans p-6 relative">
       <header className="bg-white p-4 rounded-2xl shadow-sm border mb-6 flex justify-between items-center">
         <div>
-          <h2 className="text-md font-bold text-slate-800">Dashboard Administrativo de Psicometría</h2>
+          <h2 className="text-md font-bold text-slate-800">Dashboard Administrative de Psicometría</h2>
           <p className="text-xs text-slate-500">Evaluador: {user.nombre_aspirante}</p>
         </div>
         <button onClick={onLogout} className="px-4 py-1.5 bg-rose-600 text-white rounded-xl text-xs font-bold shadow-sm">
@@ -130,7 +157,10 @@ export default function EvaluadorView({ user, onLogout }: EvaluadorViewProps) {
                       <span className="text-[10px] text-slate-400">{r.cif} • {r.email}</span>
                     </td>
                     <td className="p-3 text-center">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${r.estado_evaluacion === 'Resultados Enviados' ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        r.estado_evaluacion === 'Resultados Enviados' ? 'bg-green-100 text-green-700' :
+                        r.estado_evaluacion === 'Revisado' ? 'bg-blue-100 text-blue-700' : 'bg-amber-100 text-amber-700'
+                      }`}>
                         {r.estado_evaluacion}
                       </span>
                     </td>
@@ -196,7 +226,20 @@ export default function EvaluadorView({ user, onLogout }: EvaluadorViewProps) {
               <div className="space-y-2">
                 <label className="block text-xs font-bold text-slate-700">Registrar Resultados de Entrevista</label>
                 <textarea value={notas} onChange={e => setNotas(e.target.value)} className="w-full p-2 text-xs border rounded-xl" rows={2} placeholder="Escribe las impresiones clínicas..." />
-                <button onClick={() => guardarEntrevista(selected.id_resultado)} className="w-full py-1.5 bg-indigo-600 text-white font-bold rounded-xl text-xs shadow-sm">Guardar Cambios</button>
+                
+                <button 
+                  onClick={() => {
+                    const idAspirante = selected.respuestas_guardadas?.id_aspirante;
+                    if (idAspirante) {
+                      guardarEntrevista(idAspirante);
+                    } else {
+                      alert("Error: No se pudo extraer el identificador del aspirante.");
+                    }
+                  }} 
+                  className="w-full py-1.5 bg-indigo-600 text-white font-bold rounded-xl text-xs shadow-sm"
+                >
+                  Guardar Cambios
+                </button>
               </div>
 
               <div className="space-y-2 pt-2 border-t">
@@ -208,7 +251,18 @@ export default function EvaluadorView({ user, onLogout }: EvaluadorViewProps) {
                     className="w-full p-2 text-xs border rounded-xl bg-slate-50 text-slate-800 font-semibold focus:bg-white"
                     placeholder="Escriba el correo del destinatario..." 
                     />
-                <button onClick={() => enviarCorreo(selected.id_resultado)} className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-colors shadow-md">
+                
+                <button 
+                  onClick={() => {
+                    const idAspirante = selected.respuestas_guardadas?.id_aspirante;
+                    if (idAspirante) {
+                      enviarCorreo(idAspirante, selected.id_resultado);
+                    } else {
+                      alert("Error: Identificador del expediente no disponible.");
+                    }
+                  }} 
+                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-colors shadow-md"
+                >
                   📨 Despachar Resultados por Gmail
                 </button>
               </div>
