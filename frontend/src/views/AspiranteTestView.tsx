@@ -23,6 +23,9 @@ export default function AspiranteTestView({ user, onLogout }: AspiranteTestViewP
     onAceptar?: () => void; 
   } | null>(null);
 
+  const [modoPreguntaUnica, setModoPreguntaUnica] = useState<boolean>(false);
+  const [indicePreguntaActual, setIndicePreguntaActual] = useState<number>(0);
+
   useEffect(() => {
     fetch('http://localhost:8080/api/preguntas/p1')
       .then(r => r.json())
@@ -49,13 +52,39 @@ export default function AspiranteTestView({ user, onLogout }: AspiranteTestViewP
       ...prev,
       [pregId]: opcion === 'a' ? { a: valor, b: otroValor } : { a: otroValor, b: valor }
     }));
+
+    if (modoPreguntaUnica) {
+      setTimeout(() => {
+        if (indicePreguntaActual < preguntasP1.length - 1) {
+          setIndicePreguntaActual(prev => prev + 1);
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }, 300);
+    }
   };
 
   const handleP2Change = (pregId: number, opcionIdx: number, valor: number) => {
+    const nuevasRespuestasItem = {
+      ...respuestasP2[pregId],
+      [opcionIdx]: valor
+    };
+
     setRespuestasP2(prev => ({
       ...prev,
-      [pregId]: { ...prev[pregId], [opcionIdx]: valor }
+      [pregId]: nuevasRespuestasItem
     }));
+
+    if (modoPreguntaUnica) {
+      const cantidadRespondidas = Object.keys(nuevasRespuestasItem).length;
+      if (cantidadRespondidas === 4) {
+        setTimeout(() => {
+          if (indicePreguntaActual < preguntasP2.length - 1) {
+            setIndicePreguntaActual(prev => prev + 1);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        }, 500);
+      }
+    }
   };
 
   const finalizarTest = async () => {
@@ -82,6 +111,7 @@ export default function AspiranteTestView({ user, onLogout }: AspiranteTestViewP
   };
 
   const cambiarPasoConScroll = (nuevoPaso: 'instrucciones' | 'p1' | 'p2') => {
+    setIndicePreguntaActual(0); 
     setPasoActual(nuevoPaso);
     window.scrollTo({
       top: 0,
@@ -92,12 +122,10 @@ export default function AspiranteTestView({ user, onLogout }: AspiranteTestViewP
   return (
     <div className="min-h-screen bg-slate-50 font-sans relative">
       
-      {/*Cuadro emergente modal adaptado con vectores dinámicos */}
+      {/* Cuadro emergente modal de confirmación obligatorio ("OK") */}
       {modalAviso && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
           <div className="bg-white rounded-2xl p-6 max-w-sm w-full text-center shadow-2xl border border-slate-100 space-y-4 animate-in zoom-in-95 duration-200">
-            
-          
             <div className="flex justify-center select-none">
               {modalAviso.tipo === 'exito' ? (
                 <CheckCircle2 className="h-12 w-12 text-emerald-600 animate-pulse" />
@@ -105,7 +133,6 @@ export default function AspiranteTestView({ user, onLogout }: AspiranteTestViewP
                 <AlertTriangle className="h-12 w-12 text-rose-600" />
               )}
             </div>
-
             <h4 className={`text-sm font-bold ${modalAviso.tipo === 'exito' ? 'text-emerald-800' : 'text-rose-800'}`}>
               {modalAviso.tipo === 'exito' ? 'Evaluación Finalizada' : 'Aviso del Sistema'}
             </h4>
@@ -141,7 +168,24 @@ export default function AspiranteTestView({ user, onLogout }: AspiranteTestViewP
         )}
       </header>
 
-      <main className="max-w-3xl mx-auto p-6">
+      <main className="max-w-3xl mx-auto p-6 space-y-6">
+        
+        {/* Contenedor del Switch de Modo de Vista con Tailwind CSS */}
+        {pasoActual !== 'instrucciones' && (
+          <div className="flex justify-between items-center bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <span className="text-xs font-bold text-slate-700">Ver preguntas una por una (Modo Enfocado)</span>
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input 
+                type="checkbox" 
+                checked={modoPreguntaUnica}
+                onChange={(e) => setModoPreguntaUnica(e.target.checked)}
+                className="sr-only peer" 
+              />
+              <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+            </label>
+          </div>
+        )}
+
         {pasoActual === 'instrucciones' ? (
           <div className="bg-white p-8 rounded-2xl shadow-sm border border-slate-200/60 space-y-6">
             <div className="text-center border-b pb-4">
@@ -194,57 +238,139 @@ export default function AspiranteTestView({ user, onLogout }: AspiranteTestViewP
           </div>
         ) : pasoActual === 'p1' ? (
           <div className="space-y-6">
-            <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-xl text-xs text-indigo-800 font-medium">
-              Parte 1 : Distribuye exactamente 3 puntos entre las opciones de cada ítem.
+            <div className="bg-indigo-50 border border-indigo-100 p-4 rounded-xl text-xs text-indigo-800 font-medium flex justify-between items-center">
+              <span>Parte 1 : Distribuye exactamente 3 puntos entre las opciones de cada ítem.</span>
+              {modoPreguntaUnica && (
+                <span className="bg-indigo-200 px-2 py-0.5 rounded text-[10px] uppercase font-bold">Pregunta {indicePreguntaActual + 1} de {preguntasP1.length}</span>
+              )}
             </div>
             
-            {preguntasP1.map(q => (
-              <QuestionCard 
-                key={q.id_item} 
-                pregunta={q} 
-                onChangeP1={handleP1Change} 
-                valoresP1={respuestasP1[q.id_item]} 
-              />
-            ))}
-
-            <div className="flex justify-end">
-              <button 
-                onClick={() => cambiarPasoConScroll('p2')}
-                className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md active:scale-[0.98]"
-              >
-                Continuar a la Parte 2
-              </button>
-            </div>
+            {modoPreguntaUnica ? (
+              preguntasP1.length > 0 && (
+                // 🎯 MODIFICACIÓN: Contenedor con clases de Zoom (scale-102), sombra aumentada y transiciones fluidas
+                <div className="space-y-6 transform scale-[1.15] origin-top transition-all duration-300">
+                  <QuestionCard 
+                    pregunta={preguntasP1[indicePreguntaActual]} 
+                    onChangeP1={handleP1Change} 
+                    valoresP1={respuestasP1[preguntasP1[indicePreguntaActual].id_item]} 
+                  />
+                  <div className="flex justify-between items-center pt-2 transform scale-[1.00]">
+                    <button
+                      disabled={indicePreguntaActual === 0}
+                      onClick={() => setIndicePreguntaActual(prev => prev - 1)}
+                      className="px-4 py-1.5 border border-slate-200 text-slate-600 rounded-xl text-xs font-semibold disabled:opacity-40 bg-white shadow-sm"
+                    >
+                      Anterior
+                    </button>
+                    {indicePreguntaActual === preguntasP1.length - 1 ? (
+                      <button 
+                        onClick={() => cambiarPasoConScroll('p2')}
+                        className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md"
+                      >
+                        Continuar a la Parte 2
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setIndicePreguntaActual(prev => prev + 1)}
+                        className="px-4 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold shadow-sm"
+                      >
+                        Siguiente
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            ) : (
+              <>
+                {preguntasP1.map(q => (
+                  <QuestionCard 
+                    key={q.id_item} 
+                    pregunta={q} 
+                    onChangeP1={handleP1Change} 
+                    valoresP1={respuestasP1[q.id_item]} 
+                  />
+                ))}
+                <div className="flex justify-end">
+                  <button 
+                    onClick={() => cambiarPasoConScroll('p2')}
+                    className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-md active:scale-[0.98]"
+                  >
+                    Continuar a la Parte 2
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="bg-amber-50 border border-amber-100 p-4 rounded-xl text-xs text-amber-800 font-medium">
-              Parte 2: Ordena las 4 opciones asignando los valores del 4 al 1 según tu orden de interés.
+            <div className="bg-amber-50 border border-amber-100 p-4 rounded-xl text-xs text-amber-800 font-medium flex justify-between items-center">
+              <span>Parte 2: Ordena las 4 opciones asignando los valores del 4 al 1 según tu orden de interés.</span>
+              {modoPreguntaUnica && (
+                <span className="bg-amber-200 px-2 py-0.5 rounded text-[10px] uppercase font-bold">Pregunta {indicePreguntaActual + 1} de {preguntasP2.length}</span>
+              )}
             </div>
 
-            {preguntasP2.map(q => (
-              <QuestionCard 
-                key={q.id_item} 
-                pregunta={q} 
-                onChangeP2={handleP2Change} 
-                valoresP2={respuestasP2[q.id_item]} 
-              />
-            ))}
-
-            <div className="pt-2 flex justify-between gap-4">
-              <button 
-                onClick={() => cambiarPasoConScroll('p1')} 
-                className="px-4 py-2 border text-slate-600 font-semibold text-xs rounded-xl hover:bg-white transition-all"
-              >
-                Regresar a Parte 1
-              </button>
-              <button 
-                onClick={finalizarTest}
-                className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md"
-              >
-                Concluir y Enviar Examen
-              </button>
-            </div>
+            {modoPreguntaUnica ? (
+              preguntasP2.length > 0 && (
+                // 🎯 MODIFICACIÓN: Efecto espejo de Zoom y foco aumentado también para la sección 2
+                <div className="space-y-6 transform scale-[1.02] origin-top transition-all duration-300">
+                  <QuestionCard 
+                    pregunta={preguntasP2[indicePreguntaActual]} 
+                    onChangeP2={handleP2Change} 
+                    valoresP2={respuestasP2[preguntasP2[indicePreguntaActual].id_item]} 
+                  />
+                  <div className="flex justify-between items-center pt-2 transform scale-[0.98]">
+                    <button
+                      disabled={indicePreguntaActual === 0}
+                      onClick={() => setIndicePreguntaActual(prev => prev - 1)}
+                      className="px-4 py-1.5 border border-slate-200 text-slate-600 rounded-xl text-xs font-semibold disabled:opacity-40 bg-white shadow-sm"
+                    >
+                      Anterior
+                    </button>
+                    {indicePreguntaActual === preguntasP2.length - 1 ? (
+                      <button 
+                        onClick={finalizarTest}
+                        className="px-6 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md"
+                      >
+                        Concluir y Enviar Examen
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setIndicePreguntaActual(prev => prev + 1)}
+                        className="px-4 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-semibold shadow-sm"
+                      >
+                        Siguiente
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            ) : (
+              <>
+                {preguntasP2.map(q => (
+                  <QuestionCard 
+                    key={q.id_item} 
+                    pregunta={q} 
+                    onChangeP2={handleP2Change} 
+                    valoresP2={respuestasP2[q.id_item]} 
+                  />
+                ))}
+                <div className="pt-2 flex justify-between gap-4">
+                  <button 
+                    onClick={() => cambiarPasoConScroll('p1')} 
+                    className="px-4 py-2 border text-slate-600 font-semibold text-xs rounded-xl hover:bg-white transition-all"
+                  >
+                    Regresar a Parte 1
+                  </button>
+                  <button 
+                    onClick={finalizarTest}
+                    className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition-all shadow-md"
+                  >
+                    Concluir y Enviar Examen
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         )}
       </main>

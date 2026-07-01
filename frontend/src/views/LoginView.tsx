@@ -13,8 +13,8 @@ interface LoginViewProps {
 
 export default function LoginView({ onLoginSuccess }: LoginViewProps) {
   const [showPw, setShowPw] = useState(false);
-  const [cif, setCif] = useState("2026-0001U"); 
-  const [password, setPassword] = useState("12345");
+  const [cif, setCif] = useState(""); 
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [cargando, setCargando] = useState(false);
 
@@ -134,7 +134,7 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
                   value={cif}
                   onChange={(e) => setCif(e.target.value)}
                   className="w-full pl-10 pr-4 py-2.5 border border-slate-200 rounded-xl text-xs outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 text-slate-800 font-medium"
-                  placeholder="Ej: 2026-0001U"
+                  placeholder="CIF / USUARIO"
                 />
               </div>
             </div>
@@ -152,7 +152,7 @@ export default function LoginView({ onLoginSuccess }: LoginViewProps) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full pl-10 pr-11 py-2.5 border border-slate-200 rounded-xl text-xs outline-none transition-all focus:border-teal-500 focus:ring-4 focus:ring-teal-500/10 text-slate-800 font-medium"
-                  placeholder="••••••••••"
+                  placeholder="Contraseña"
                 />
                 <button
                   type="button"
