@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { User, Pregunta } from '../interfaces';
 import QuestionCard from '../components/QuestionCard';
+import { ClipboardCheck, MailCheck, AlertTriangle } from 'lucide-react';
 
 interface ResultadoAspirante {
   id_resultado: number;
@@ -37,6 +38,14 @@ export default function EvaluadorView({ user, onLogout }: EvaluadorViewProps) {
   const [preguntasP2, setPreguntasP2] = useState<Pregunta[]>([]);
   const [verFormularioAuditoria, setVerFormularioAuditoria] = useState(false);
 
+  // Estado extendido con 'variante' y 'titulo' para controlar el pop-up dinámico con botón OK
+  const [modalAviso, setModalAviso] = useState<{ 
+    titulo: string;
+    mensaje: string; 
+    variante: 'guardar' | 'correo' | 'error'; 
+    onAceptar?: () => void; 
+  } | null>(null);
+
   const cargarDatos = () => {
     fetch('http://localhost:8080/api/resultados')
       .then(res => res.json())
@@ -53,7 +62,6 @@ export default function EvaluadorView({ user, onLogout }: EvaluadorViewProps) {
       .then((d: Pregunta[]) => setPreguntasP2(d.map(i => ({...i, seccion: 'Parte 2'}))));
   }, []);
 
-  // 🎯 Cambia el estado persistente a "Revisado" (id_estado = 2)
   const guardarEntrevista = async (idAspirante: number) => {
     try {
       await fetch(`http://localhost:8080/api/entrevista/${idAspirante}`, {
@@ -61,9 +69,14 @@ export default function EvaluadorView({ user, onLogout }: EvaluadorViewProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notas })
       });
-      alert('Notas de entrevista fijadas en el expediente.');
       
-      // Actualización visual reactiva local
+      // MODIFICACIÓN: Variante 'guardar' para activar el icono ClipboardCheck
+      setModalAviso({ 
+        titulo: 'Anotaciones Almacenadas',
+        mensaje: 'Las anotaciones clínicas de la entrevista han sido guardadas y fijadas con éxito en el expediente del aspirante.', 
+        variante: 'guardar' 
+      });
+      
       setResultados(prev => prev.map(item => 
         item.respuestas_guardadas?.id_aspirante === idAspirante 
           ? { ...item, estado_evaluacion: 'Revisado', notas_entrevista: notas }
@@ -79,14 +92,21 @@ export default function EvaluadorView({ user, onLogout }: EvaluadorViewProps) {
       }
     } catch (error) {
       console.error("Error al guardar entrevista:", error);
-      alert("No se pudieron guardar las notas.");
+      setModalAviso({ 
+        titulo: 'Fallo de Conectividad',
+        mensaje: 'Error de conectividad: No se pudieron almacenar las impresiones clínicas en el servidor.', 
+        variante: 'error' 
+      });
     }
   };
 
-  // 🎯 Cambia el estado persistente a "Resultados Enviados" (id_estado = 3)
   const enviarCorreo = async (idAspirante: number, idResultado: number) => {
     if (!correoDestino.trim()) {
-      alert("Por favor, especifique un correo electrónico de destino válido.");
+      setModalAviso({ 
+        titulo: 'Validación Requerida',
+        mensaje: 'Por favor, especifique una dirección de correo electrónico de destino válida.', 
+        variante: 'error' 
+      });
       return;
     }
 
@@ -105,24 +125,85 @@ export default function EvaluadorView({ user, onLogout }: EvaluadorViewProps) {
       
       const data = await res.json();
       if (data.success) {
-        alert(`¡Éxito! Expediente guardado y transmitido a: ${correoDestino}`);
+        // variantes de avisos
+        setModalAviso({ 
+          titulo: 'Despacho de Reporte Exitoso',
+          mensaje: `¡Transmisión Exitosa! El dictamen psicométrico Allport ha sido despachado hacia la dirección: ${correoDestino}`, 
+          variante: 'correo',
+          onAceptar: () => setSelected(null)
+        });
         
         setResultados(prev => prev.map(item => 
           item.id_resultado === idResultado 
-            ? { ...item, estado_evaluacion: 'Resultados Enviados' }
+            ? { ...item, estado_evaluacion: 'Resultados Enviados', notas_entrevista: notas }
             : item
         ));
-
-        setSelected(null); 
       }
     } catch (error) {
       console.error("Error en la cadena transaccional:", error);
-      alert("Ocurrió un error al intentar procesar el envío.");
+      setModalAviso({ 
+        titulo: 'Fallo Interno SMTP',
+        mensaje: 'Error en la cola de mensajería: El servidor SMTP de Gmail rechazó la conexión o el reporte presenta inconsistencias.', 
+        variante: 'error' 
+      });
     }
   };
 
   return (
     <div className="min-h-screen bg-slate-100 font-sans p-6 relative">
+      
+      {/*Cuadro emergente modal polimórfico adaptado con iconos vectoriales de Lucide */}
+      {modalAviso && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl p-6 max-w-sm w-full text-center shadow-2xl border border-slate-100 space-y-4 animate-in zoom-in-95 duration-200">
+            
+            {/* Renderizado condicional del componente de icono vectorial */}
+            <div className="flex justify-center select-none">
+              {(() => {
+                switch (modalAviso.variante) {
+                  case 'guardar':
+                    return <ClipboardCheck className="h-12 w-12 text-indigo-600 animate-bounce" />;
+                  case 'correo':
+                    return <MailCheck className="h-12 w-12 text-emerald-600 animate-pulse" />;
+                  case 'error':
+                  default:
+                    return <AlertTriangle className="h-12 w-12 text-rose-600" />;
+                }
+              })()}
+            </div>
+
+            {/* Inyección dinámica de colores en el encabezado del título */}
+            <h4 className={`text-sm font-bold ${
+              modalAviso.variante === 'guardar' ? 'text-indigo-800' : 
+              modalAviso.variante === 'correo' ? 'text-emerald-800' : 'text-rose-800'
+            }`}>
+              {modalAviso.titulo}
+            </h4>
+
+            <p className="text-xs text-slate-600 leading-relaxed font-medium px-2">
+              {modalAviso.mensaje}
+            </p>
+
+            {/* Botón adaptativo con los colores correspondientes de la acción */}
+            <div className="pt-2">
+              <button
+                onClick={() => {
+                  if (modalAviso.onAceptar) modalAviso.onAceptar();
+                  setModalAviso(null);
+                }}
+                className={`w-full py-2 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-[0.98] ${
+                  modalAviso.variante === 'guardar' ? 'bg-indigo-600 hover:bg-indigo-700 shadow-indigo-100' : 
+                  modalAviso.variante === 'correo' ? 'bg-emerald-600 hover:bg-emerald-700 shadow-emerald-100' : 
+                  'bg-rose-600 hover:bg-rose-700 shadow-rose-100'
+                }`}
+              >
+                Aceptar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header className="bg-white p-4 rounded-2xl shadow-sm border mb-6 flex justify-between items-center">
         <div>
           <h2 className="text-md font-bold text-slate-800">Dashboard Administrative de Psicometría</h2>
@@ -169,7 +250,12 @@ export default function EvaluadorView({ user, onLogout }: EvaluadorViewProps) {
                     <td className="p-3 text-center">{r.total_estetico}</td>
                     <td className="p-3 text-center">
                       <button 
-                        onClick={() => { setSelected(r); setNotas(r.notas_entrevista || ''); setCorreoDestino(''); setVerFormularioAuditoria(false); }} 
+                        onClick={() => { 
+                          setSelected(r); 
+                          setNotas(r.notas_entrevista || ''); 
+                          setCorreoDestino(''); 
+                          setVerFormularioAuditoria(false); 
+                        }} 
                         className="px-3 py-1 bg-indigo-600 text-white font-bold rounded-lg text-[10px]"
                         >
                         Revisar
@@ -233,7 +319,7 @@ export default function EvaluadorView({ user, onLogout }: EvaluadorViewProps) {
                     if (idAspirante) {
                       guardarEntrevista(idAspirante);
                     } else {
-                      alert("Error: No se pudo extraer el identificador del aspirante.");
+                      setModalAviso({ titulo: 'Error Operacional', mensaje: 'Error operacional: No se pudo extraer el identificador único del aspirante seleccionado.', variante: 'error' });
                     }
                   }} 
                   className="w-full py-1.5 bg-indigo-600 text-white font-bold rounded-xl text-xs shadow-sm"
@@ -258,7 +344,7 @@ export default function EvaluadorView({ user, onLogout }: EvaluadorViewProps) {
                     if (idAspirante) {
                       enviarCorreo(idAspirante, selected.id_resultado);
                     } else {
-                      alert("Error: Identificador del expediente no disponible.");
+                      setModalAviso({ titulo: 'Error Operacional', mensaje: 'Error operacional: Identificador del expediente axiología Allport no disponible.', variante: 'error' });
                     }
                   }} 
                   className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition-colors shadow-md"

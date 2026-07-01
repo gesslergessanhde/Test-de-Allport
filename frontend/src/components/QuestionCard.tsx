@@ -28,7 +28,7 @@ export default function QuestionCard({ pregunta, onChangeP1, onChangeP2, valores
       {pregunta.seccion === 'Parte 1' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
           <div className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
-            <span className="text-xs font-medium text-slate-600">Opción (a)</span>
+            <span className="text-xs font-medium text-slate-600">Opción (a) De acuerdo</span>
             <select 
               className="bg-white border rounded-lg px-2 py-1 text-xs font-bold text-indigo-600 disabled:opacity-80 disabled:bg-slate-100"
               value={currentP1.a}
@@ -39,7 +39,7 @@ export default function QuestionCard({ pregunta, onChangeP1, onChangeP2, valores
             </select>
           </div>
           <div className="flex justify-between items-center p-3 bg-slate-50 rounded-xl border border-slate-100">
-            <span className="text-xs font-medium text-slate-600">Opción (b)</span>
+            <span className="text-xs font-medium text-slate-600">Opción (b) En desacuerdo</span>
             <select 
               className="bg-white border rounded-lg px-2 py-1 text-xs font-bold text-indigo-600 disabled:opacity-80 disabled:bg-slate-100"
               value={currentP1.b}
